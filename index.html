@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta name="robots" content="noindex, nofollow">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ledger</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Ledger">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#f4f1ea" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#121514" media="(prefers-color-scheme: dark)">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="style.css?v=0bc026b69d">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%231f3a33'/><path d='M9 22V10m5 12V14m5 8v-5m5 5V8' stroke='%23e9e4d8' stroke-width='2.6' stroke-linecap='round'/></svg>">
+</head>
+<body class="readonly">
+<header class="top">
+  <div class="brand">
+    <span class="logo" aria-hidden="true"></span>
+    <span class="name">Ledger</span>
+  </div>
+  <nav class="tabs" role="tablist">
+    <button role="tab" data-tab="overview" class="active">Overview</button>
+    <button role="tab" data-tab="purchases">Purchases</button>
+    <button role="tab" data-tab="activity"><span class="long">Money in &amp; out</span><span class="short">Money</span></button>
+    <button role="tab" data-tab="accounts">Accounts</button>
+    <button role="tab" data-tab="rewards" class="soon">Rewards</button>
+    <button role="tab" data-tab="budget" class="soon">Budget</button>
+  </nav>
+  <div class="controls">
+    <select id="period" aria-label="Period">
+      <option value="this_month">This month</option>
+      <option value="last_month">Last month</option>
+      <option value="30d">Last 30 days</option>
+      <option value="90d">Last 90 days</option>
+      <option value="ytd">Year to date</option>
+      <option value="custom">Custom…</option>
+    </select>
+    <span id="custom-range" hidden>
+      <input type="date" id="start"> – <input type="date" id="end">
+    </span>
+    <select id="account-filter" aria-label="Account"><option value="">All accounts</option></select>
+    <button id="sync-btn" class="ghost" title="Pull the latest from your banks">
+      <span class="dot"></span><span id="sync-label">Sync</span>
+    </button>
+  </div>
+</header>
+
+<div id="banner" class="banner" hidden></div>
+<div id="bills" class="bills" hidden></div>
+
+<main>
+  <!-- OVERVIEW -->
+  <section id="tab-overview" class="tab active">
+    <div class="stats">
+      <div class="stat"><div class="label">Spent</div><div class="value" id="s-spend">—</div><div class="sub" id="s-spend-sub"></div></div>
+      <div class="stat"><div class="label">Money in</div><div class="value pos" id="s-income">—</div><div class="sub" id="s-income-sub"></div></div>
+      <div class="stat"><div class="label">Net</div><div class="value" id="s-net">—</div><div class="sub">money in − spent</div></div>
+      <div class="stat"><div class="label">Cash in bank</div><div class="value" id="s-cash">—</div><div class="sub">checking + savings</div></div>
+      <div class="stat"><div class="label">Owed on cards</div><div class="value" id="s-owed">—</div><div class="sub" id="s-owed-sub"></div></div>
+    </div>
+
+    <div class="grid two">
+      <div class="panel">
+        <div class="panel-head"><h2>Daily spending</h2><span class="muted" id="range-label"></span></div>
+        <div id="chart-daily" class="chart"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h2>By category</h2></div>
+        <div id="cat-list" class="barlist"></div>
+      </div>
+    </div>
+
+    <div class="grid two">
+      <div class="panel">
+        <div class="panel-head"><h2>Top merchants</h2><button class="link" data-goto="purchases">All purchases →</button></div>
+        <div id="top-merchants" class="barlist clickable"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h2>Cards</h2><button class="link" data-goto="accounts">Accounts →</button></div>
+        <div id="card-strip" class="card-strip"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PURCHASES -->
+  <section id="tab-purchases" class="tab">
+    <div class="toolbar">
+      <input type="search" id="m-search" placeholder="Search merchants or descriptions">
+      <select id="m-category"><option value="">All categories</option></select>
+      <span class="muted" id="m-count"></span>
+    </div>
+    <div class="split">
+      <div class="panel flush">
+        <div id="merchant-list" class="merchant-list"></div>
+      </div>
+      <aside id="detail" class="panel detail" hidden>
+        <div class="detail-head">
+          <div id="d-icon"></div>
+          <div class="d-title">
+            <div class="eyebrow" id="d-category"></div>
+            <h2 id="d-name"></h2>
+            <div class="muted" id="d-meta"></div>
+          </div>
+          <button class="icon" id="d-close" aria-label="Close">×</button>
+        </div>
+        <div class="d-total" id="d-total"></div>
+        <div id="d-charges"></div>
+        <div class="d-fix">
+          <h3>Fix this merchant</h3>
+          <label>Rename to <input id="d-rename" type="text"></label>
+          <label>Category <select id="d-cat"></select></label>
+          <button id="d-save">Apply to all charges</button>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ACTIVITY -->
+  <section id="tab-activity" class="tab">
+    <div class="toolbar">
+      <div class="seg" id="a-kind">
+        <button data-kind="" class="active">All</button>
+        <button data-kind="in">Money in</button>
+        <button data-kind="out">Spending</button>
+        <button data-kind="transfers">Card payments &amp; transfers</button>
+      </div>
+      <input type="search" id="a-search" placeholder="Search">
+      <span class="muted" id="a-count"></span>
+    </div>
+    <div class="panel flush">
+      <table class="txns">
+        <thead><tr><th>Merchant</th><th class="hide-sm">Category</th><th class="hide-sm">Account</th><th class="num">Amount</th></tr></thead>
+        <tbody id="a-rows"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ACCOUNTS -->
+  <section id="tab-accounts" class="tab">
+    <div class="stats compact">
+      <div class="stat"><div class="label">Cash</div><div class="value" id="acc-cash">—</div></div>
+      <div class="stat"><div class="label">Owed on cards</div><div class="value" id="acc-owed">—</div></div>
+      <div class="stat"><div class="label">Overall utilization</div><div class="value" id="acc-util">—</div><div class="sub" id="acc-util-sub"></div></div>
+    </div>
+    <div id="account-cards" class="account-cards"></div>
+  </section>
+
+  <section id="tab-rewards" class="tab">
+    <div class="empty big">
+      <h2>Rewards</h2>
+      <p>Points and cash back per card, sign-up bonus progress, expirations, and "which card should I use at this store?" Coming in the next build.</p>
+    </div>
+  </section>
+  <section id="tab-budget" class="tab">
+    <div class="empty big">
+      <h2>Budget</h2>
+      <p>Monthly plan from your loan disbursements, fixed costs and card payoff goal, with roll-over for under- and over-spending. Coming after Rewards.</p>
+    </div>
+  </section>
+</main>
+
+<div id="toast" class="toast" hidden></div>
+
+<div id="unlock" class="unlock">
+  <form id="unlock-form" class="unlock-card" autocomplete="off">
+    <span class="logo" aria-hidden="true"></span>
+    <h1>Ledger</h1>
+    <p class="muted">Your snapshot is encrypted. Enter your passphrase to open it on this device.</p>
+    <input id="unlock-pass" type="password" placeholder="Passphrase" autocomplete="current-password" autocapitalize="off" autocorrect="off" spellcheck="false" required>
+    <label class="remember"><input type="checkbox" id="unlock-remember" checked> Remember on this device</label>
+    <button type="submit" id="unlock-btn">Unlock</button>
+    <p id="unlock-msg" class="unlock-msg" role="status"></p>
+  </form>
+</div>
+<script src="mobile-shim.js"></script>
+
+</body>
+</html>
